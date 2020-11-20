@@ -110,8 +110,6 @@ struct PropertyAuditData {
     const char* name;
 };
 
-static bool weaken_prop_override_security = false;
-
 static int PropertyAuditCallback(void* data, security_class_t /*cls*/, char* buf, size_t len) {
     auto* d = reinterpret_cast<PropertyAuditData*>(data);
 
@@ -831,16 +829,20 @@ static const char *build_fingerprint_key[] = {
 #endif
 
 static void workaround_snet_properties() {
+    std::string build_type = android::base::GetProperty("ro.build.type", "");
+
     // Weaken property override security to set safetynet props
     weaken_prop_override_security = true;
 
 	std::string error;
-	LOG(INFO) << "snet: Hiding sensitive props";
 
-	// Hide all sensitive props
-	for (int i = 0; snet_prop_key[i]; ++i) {
-		PropertySet(snet_prop_key[i], snet_prop_value[i], &error);
-	}
+	// Hide all sensitive props if not eng build
+    if (build_type != "eng") {
+	    LOG(INFO) << "snet: Hiding sensitive props";
+	    for (int i = 0; snet_prop_key[i]; ++i) {
+            PropertySet(snet_prop_key[i], snet_prop_value[i], &error);
+	    }
+    }
 
     #ifdef TARGET_FORCE_BUILD_FINGERPRINT
         for (int i = 0; build_fingerprint_key[i]; ++i) {
